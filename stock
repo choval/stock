@@ -59,7 +59,7 @@ function main($quotes=false) {
 	if($stocks) {
 		foreach($stocks as $stock) {
 			$var = number_format(abs($stock['Change'])/$stock['LastTradePriceOnly']*100,2);
-			$change = str_replace('+','▲ ',str_replace('-','▼ ',$stock['Change']));
+			$change = str_replace('+','▲ +',str_replace('-','▼ -',$stock['Change']));
 			$string1 = '  '.$stock['Symbol'].' '.$stock['LastTradePriceOnly'].' ';
 			$string2 = $change.' ('.$var.'%)  ';
 			$addLength = strlen($string1)+strlen($string2);;
