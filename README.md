@@ -1,5 +1,9 @@
 # Terminal Finance Stock Quotes
 
+
+![Terminal Finance Stock Quotes screenshot](https://raw.github.com/choval/stock/master/screenshot.png)
+
+
 Copyright: Copyright (C) 2016 Osvaldo Jiang  
 Website: http://osvaldojiang.com/  
 Github: https://github.com/choval/stock
