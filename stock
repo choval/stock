@@ -1,0 +1,142 @@
+#!/usr/bin/php
+<?php
+
+if(!empty($argv[1])) {
+	$parm = preg_replace('/[^a-z]/','',$argv[1]);
+	switch($parm) {
+		case 'install':
+			exec('sudo cp '.__FILE__.' /usr/local/bin/');
+			if(is_file('/usr/local/bin/'.basename(__FILE__))) {
+				echo "Installed";
+			}
+			break;
+		case 'help':
+			echo "Terminal Finance Stock Quotes
+Copyright: Copyright (C) 2016 Osvaldo Jiang
+Website: http://osvaldojiang.com/
+Github: https://github.com/choval/stock
+
+Usage:
+
+Display this help
+./stock help
+
+Install, allows you to run stock from anywhere
+./stock install
+
+Display stock quotes on demand, if no symbols are passed retrieves from config
+./stock [space separated ticker symbols]
+
+Data is retrieved from Yahoo Finance using Yahoo's Query Language.
+You can set your own stocks by creating a space delimited file at ~/.stock/config
+";
+			break;
+		default:
+			$quotes = $argv;
+			array_shift($quotes);
+			main($quotes);
+			return;
+	}
+	echo "\n";
+	return;
+} else {
+	main();
+}
+
+/**
+ * Main
+ */
+function main($quotes=false) {
+	$width = exec('tput cols');
+	if($quotes) {
+		$config = $quotes;
+	} else {
+		$config = loadConfig();
+	}
+	$i = 0;
+	$stocks = queryYahoo($config);
+	$length = 0;
+	if($stocks) {
+		foreach($stocks as $stock) {
+			$var = number_format(abs($stock['Change'])/$stock['LastTradePriceOnly']*100,2);
+			$change = str_replace('+','▲ ',str_replace('-','▼ ',$stock['Change']));
+			$string1 = '  '.$stock['Symbol'].' '.$stock['LastTradePriceOnly'].' ';
+			$string2 = $change.' ('.$var.'%)  ';
+			$addLength = strlen($string1)+strlen($string2);;
+			if(($length+$addLength) > $width) {
+				echo "\n";
+				$length = $addLength;
+			} else {
+				$length += $addLength;
+			}
+			colorPrint($string1,$stock['Change'],1);
+			colorPrint($string2,$stock['Change']);
+		}
+	} else {
+		echo "Error";
+	}
+	echo "\n";
+}
+
+/**
+ * Echo with color
+ */
+function colorPrint($text,$val,$hl=0,$newColor=[]) {
+	$colors = [
+		'green'=>'32',
+		'blue'=>'34',
+		'cyan'=>'36',
+		'red'=>'31',
+		'purple'=>'35',
+		'yellow'=>'33',
+		'white'=>'37',
+		];
+	$color = [
+		'>'=>'green',
+		'='=>'white',
+		'<'=>'red'
+	];
+	$color = array_merge($color,$newColor);
+	$type = '=';
+	if($val > 0) {
+		$type = '>';
+	} else if($val < 0) {
+		$type = '<';
+	}
+	echo "\033[".$hl.';'.$colors[$color[$type]].'m'.$text."\033[0m";
+}
+
+/**
+ * Loads settings
+ */
+function loadConfig() {
+	$file = $_SERVER['HOME'].'/.stock/config';
+	if(is_file($file)) {
+		$data = file_get_contents($file);
+		$data = preg_split('/[\s]+/',$data,-1,PREG_SPLIT_NO_EMPTY);
+		return $data;
+	}
+	return ['AAPL','GOOG','MSFT','YHOO','FB'];
+}
+
+/**
+ * Queries Yahoo's YQL
+ */
+function queryYahoo($stocks) {
+	$query = "SELECT Symbol,Change,LastTradePriceOnly FROM yahoo.finance.quote WHERE symbol IN ('".implode("','",$stocks)."')";
+	$base = "http://query.yahooapis.com/v1/public/yql?env=store://datatables.org/alltableswithkeys&format=json&q=";
+	$res = @file_get_contents($base.urlencode($query));
+	if($res) {
+		$res = json_decode($res,true);
+		if(isset($res['query']['results']['quote'])) {
+			if(count($stocks) == 1) {
+				return $res['query']['results'];
+			}
+			return $res['query']['results']['quote'];
+		}
+	}
+	return false;
+}
+
+
+
